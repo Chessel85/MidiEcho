@@ -19,7 +19,7 @@ jobs:
             exe: ""
           - name: Windows
             os: windows-latest
-            generator: Visual Studio 17 2022
+            generator: ""  # let CMake pick the installed Visual Studio
             exe: .exe
 
     name: ${{ matrix.name }}
@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Configure
-        run: cmake -B build -G "${{ matrix.generator }}"
+        run: cmake -B build ${{ matrix.generator && format('-G "{0}"', matrix.generator) || '' }}
 
       - name: Build
         run: cmake --build build --config Release --parallel
