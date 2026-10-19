@@ -1,0 +1,82 @@
+# Builds MIDI Echo on macOS and Windows, runs the tests and pluginval, and
+# uploads each plug-in as a downloadable zip on the run's summary page.
+name: Build and test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            generator: Xcode
+            exe: ""
+          - name: Windows
+            os: windows-latest
+            generator: Visual Studio 17 2022
+            exe: .exe
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -G "${{ matrix.generator }}"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Sign for macOS (ad hoc)
+        if: runner.os == 'macOS'
+        # Apple Silicon refuses to load unsigned code; an ad-hoc signature is
+        # enough for local use, though not for Gatekeeper on a downloaded file.
+        run: codesign --force --deep --sign - "build/MidiEcho_artefacts/Release/VST3/MIDI Echo.vst3"
+
+      - name: Processor test
+        run: build/MidiEchoProcessorTest_artefacts/Release/MidiEchoProcessorTest${{ matrix.exe }}
+
+      - name: Host test (loads the built VST3)
+        run: |
+          for delay in 0 50 1000; do
+            build/MidiEchoHostTest_artefacts/Release/MidiEchoHostTest${{ matrix.exe }} \
+              "build/MidiEcho_artefacts/Release/VST3/MIDI Echo.vst3" $delay
+          done
+
+      - name: pluginval
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+            unzip -q pluginval.zip
+            PLUGINVAL=pluginval.app/Contents/MacOS/pluginval
+          else
+            curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+            unzip -q pluginval.zip
+            PLUGINVAL=./pluginval.exe
+          fi
+          "$PLUGINVAL" --strictness-level 5 --skip-gui-tests --validate-in-process \
+            --validate "build/MidiEcho_artefacts/Release/VST3/MIDI Echo.vst3"
+
+      - name: Zip plug-in
+        run: |
+          cd build/MidiEcho_artefacts/Release/VST3
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            ditto -c -k --keepParent "MIDI Echo.vst3" "$GITHUB_WORKSPACE/MIDI-Echo-macOS.zip"
+          else
+            7z a -tzip "$GITHUB_WORKSPACE/MIDI-Echo-Windows.zip" "MIDI Echo.vst3"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MIDI-Echo-${{ matrix.name }}
+          path: MIDI-Echo-*.zip
