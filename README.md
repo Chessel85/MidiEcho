@@ -38,12 +38,12 @@ cmake -B build -G "Visual Studio 17 2022" -A x64
 cmake --build build --config Release --target MidiEcho_VST3
 ```
 
-The first configure downloads JUCE 8.0.15. Two test programs are built with `cmake --build build --config Release`:
+The first configure downloads JUCE 8.0.15. The output is the folder `build\MidiEcho_artefacts\Release\VST3\MIDI Echo.vst3`. Copy that whole folder into `C:\Program Files\Common Files\VST3`, then rescan plug-ins in REAPER.
+
+Building everything with `cmake --build build --config Release` also builds two test programs. Each prints PASS or FAIL:
 
 - `MidiEchoProcessorTest.exe` drives the processor directly.
 - `MidiEchoHostTest.exe "<path to MIDI Echo.vst3>" 1000` loads the built VST3 like a host does, plays one note, and prints each MIDI event that comes out, with its time in ms.
-
- The output is the folder `build\MidiEcho_artefacts\Release\VST3\MIDI Echo.vst3`. Copy that whole folder into `C:\Program Files\Common Files\VST3`, then rescan plug-ins in REAPER.
 
 ## macOS and automatic builds
 
