@@ -80,3 +80,54 @@ jobs:
         with:
           name: MIDI-Echo-${{ matrix.name }}
           path: MIDI-Echo-*.zip
+
+  # Pushing a tag such as v0.1.0 publishes a GitHub Release with both zips,
+  # but only after the macOS and Windows builds and tests have all passed.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          mv dist/MIDI-Echo-Windows.zip "dist/MIDI-Echo-${VERSION}-Windows.zip"
+          mv dist/MIDI-Echo-macOS.zip "dist/MIDI-Echo-${VERSION}-macOS.zip"
+
+          cat > notes.md <<'NOTES'
+          MIDI Echo passes MIDI straight through and plays a second copy after a delay you set (0 to 10,000 ms; 0 turns the repeat off). It is a VST3 for REAPER and other hosts, and works from the keyboard with a screen reader. Put it before your instrument in the FX chain.
+
+          ## Windows
+
+          1. Download **MIDI-Echo-@VERSION@-Windows.zip** and extract it.
+          2. Copy the whole **MIDI Echo.vst3** folder into `C:\Program Files\Common Files\VST3` (Windows asks for administrator permission).
+          3. Rescan plug-ins in your host.
+
+          ## macOS (11 or later, Apple Silicon or Intel)
+
+          1. Download **MIDI-Echo-@VERSION@-macOS.zip** and open it.
+          2. Move **MIDI Echo.vst3** into `~/Library/Audio/Plug-Ins/VST3`.
+          3. The plug-in is not notarized by Apple, so macOS blocks it until you run this once in Terminal:
+
+             ```
+             xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"MIDI Echo.vst3"
+             ```
+          4. Rescan plug-ins in your host.
+
+          Both builds passed the automated tests and pluginval (strictness level 5) before this release was published.
+          NOTES
+          sed -i "s/@VERSION@/${VERSION}/g" notes.md
+
+          gh release create "$VERSION" dist/*.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "MIDI Echo $VERSION" \
+            --notes-file notes.md

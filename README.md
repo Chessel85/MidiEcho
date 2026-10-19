@@ -2,6 +2,19 @@
 
 A minimal JUCE VST3 that passes MIDI straight through and plays a second copy of it after a set delay. It has one parameter, **Delay**, from 0 to 10,000 ms (default 50 ms). It is built the same way as LJuno-116, with the same JUCE version and CMake setup, so NVDA can read its controls.
 
+## Download
+
+Get the latest Windows and macOS zips from the [Releases page](https://github.com/Chessel85/MidiEcho/releases/latest). Each release lists the install steps.
+
+To publish a new release, update `VERSION` in `CMakeLists.txt`, commit, and push a matching tag:
+
+```
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+GitHub builds and tests both platforms, and creates the release only if everything passes.
+
 ## Using it in REAPER
 
 1. Put **MIDI Echo** on a track *before* your instrument, in the same FX chain.
