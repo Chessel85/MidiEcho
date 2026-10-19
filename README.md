@@ -44,3 +44,13 @@ The first configure downloads JUCE 8.0.15. Two test programs are built with `cma
 - `MidiEchoHostTest.exe "<path to MIDI Echo.vst3>" 1000` loads the built VST3 like a host does, plays one note, and prints each MIDI event that comes out, with its time in ms.
 
  The output is the folder `build\MidiEcho_artefacts\Release\VST3\MIDI Echo.vst3`. Copy that whole folder into `C:\Program Files\Common Files\VST3`, then rescan plug-ins in REAPER.
+
+## macOS and automatic builds
+
+Every push to GitHub runs `.github/workflows/build.yml` on macOS and Windows. It builds the plug-in, runs both test programs and [pluginval](https://github.com/Tracktion/pluginval) at strictness level 5, and attaches the zipped plug-ins to the run's page under **Artifacts**. The workflow skips the plug-in window, so it cannot check how VoiceOver reads it.
+
+The Mac build is a universal binary (Apple Silicon and Intel, macOS 11 or later), signed ad hoc. macOS blocks unsigned downloads, so after unzipping, copy `MIDI Echo.vst3` to `~/Library/Audio/Plug-Ins/VST3` and run:
+
+```
+xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/"MIDI Echo.vst3"
+```
